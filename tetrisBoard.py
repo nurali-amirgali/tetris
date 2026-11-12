@@ -1,4 +1,6 @@
-import pygame 
+import pygame
+import time
+import random
 
 EMPTY = (0,0,0)
 RED = (240, 0, 0)
@@ -49,45 +51,79 @@ PIECES = {
     "L": (L_PIECE, ORANGE),
 }
 
+class piece:
+    def __init__(self):
+        pass
+
 class Board:
     def __init__(self, x, y, screen, numTilesX = 10, numTilesY = 20, tileSize = 30, borderWidth = 1, outerBorderWidth = 7):
         self.x = x
         self.y = y
+        
+        self.hiddenTilesY = 4
         self.numTilesX = numTilesX
-        self.numTilesY = numTilesY
+        self.numTilesY = numTilesY + self.hiddenTilesY
+        
+        self.visibleTilesY = numTilesY
+        self.visibleTilesX = numTilesX
+        
         self.screen = screen
         self.tileSize = tileSize
         self.borderWidth = borderWidth
         self.outerBorderWidth = outerBorderWidth
-        self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY)]
+        self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)]
+        
+        self.lastUpdateTime = time.perf_counter()
+        self.updateDelay = 500
+        
+        self.isPieceActive = False
+        self.activePiece = None
+        self.nextPieces = [list(PIECES.keys())]
+        self.currentPieceIndex = 0
+        
+        self.piecePos = (0,0)
+        
+    def randomizePieces(self):
+        random.shuffle(self.nextPieces)
     
     def renderGridLines(self, x, y):
-        for row in range(self.numTilesY + 1):
+        for row in range(self.visibleTilesY + 1):
             drawY = (row * self.tileSize) + y
-            pygame.draw.line(self.screen, BORDER_COLOR, (x, drawY), (x + (self.tileSize * self.numTilesX), drawY), self.borderWidth)
+            pygame.draw.line(self.screen, BORDER_COLOR, (x, drawY), (x + (self.tileSize * self.visibleTilesX), drawY), self.borderWidth)
         
-        for col in range(self.numTilesX + 1):
+        for col in range(self.visibleTilesX + 1):
             drawX = (col * self.tileSize) + x
-            pygame.draw.line(self.screen, BORDER_COLOR, (drawX, y), (drawX, y + (self.tileSize * self.numTilesY)), self.borderWidth)
+            pygame.draw.line(self.screen, BORDER_COLOR, (drawX, y), (drawX, y + (self.tileSize * self.visibleTilesY)), self.borderWidth)
         
     
     def render(self):
-        x = self.x - (self.numTilesX * self.tileSize)/2
-        y = self.y - (self.numTilesY * self.tileSize)/2
+        x = self.x - (self.visibleTilesX * self.tileSize)/2
+        y = self.y - (self.visibleTilesY * self.tileSize)/2
         
         borderW = self.outerBorderWidth
-        bgW = (self.tileSize * self.numTilesX) + (borderW * 2)
-        bgH = (self.tileSize * self.numTilesY) + (borderW * 2)
+        bgW = (self.tileSize * self.visibleTilesX) + (borderW * 2)
+        bgH = (self.tileSize * self.visibleTilesY) + (borderW * 2)
         bgX = x - borderW
         bgY = y - borderW
         pygame.draw.rect(self.screen, BORDER_COLOR, (bgX, bgY, bgW, bgH), border_radius=5)
         
-        for row in range(self.numTilesY):
-            for col in range(self.numTilesX):
-                tile = self.tiles[row][col]
+        for row in range(self.visibleTilesY):
+            for col in range(self.visibleTilesX):
+                tile = self.tiles[row + self.hiddenTilesY][col]
                 
                 tileX = (col * self.tileSize) + x
                 tileY = (row * self.tileSize) + y
                 
                 pygame.draw.rect(self.screen, tile, (tileX, tileY, self.tileSize, self.tileSize))
         self.renderGridLines(x, y)
+    
+    def update(self):
+        now = time.perf_counter()
+        if (now - self.lastUpdateTime) >= (self.updateDelay/1000):
+            self.lastUpdateTime = now
+            if not self.activePiece:
+                self.activePiece = True
+                self.activePiece = self.nextPieces[self.currentPieceIndex]
+                self.currentPieceIndex += 1
+            print("tick")
+                        

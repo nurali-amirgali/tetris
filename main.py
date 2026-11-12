@@ -28,6 +28,7 @@ while running:
     screen.fill(BG_COLOR)
     
     board.render()
+    board.update()
     
     pygame.display.flip()
 
