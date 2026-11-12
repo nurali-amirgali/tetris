@@ -23,6 +23,16 @@ class Board:
         self.outerBorderWidth = outerBorderWidth
         self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY)]
     
+    def renderGridLines(self, x, y):
+        for row in range(self.numTilesY + 1):
+            drawY = (row * self.tileSize) + y
+            pygame.draw.line(self.screen, BORDER_COLOR, (x, drawY), (x + (self.tileSize * self.numTilesX), drawY), self.borderWidth)
+        
+        for col in range(self.numTilesX + 1):
+            drawX = (col * self.tileSize) + x
+            pygame.draw.line(self.screen, BORDER_COLOR, (drawX, y), (drawX, y + (self.tileSize * self.numTilesY)), self.borderWidth)
+        
+    
     def render(self):
         x = self.x - (self.numTilesX * self.tileSize)/2
         y = self.y - (self.numTilesY * self.tileSize)/2
@@ -32,7 +42,7 @@ class Board:
         bgH = (self.tileSize * self.numTilesY) + (borderW * 2)
         bgX = x - borderW
         bgY = y - borderW
-        pygame.draw.rect(self.screen, BORDER_COLOR, (bgX, bgY, bgW, bgH))
+        pygame.draw.rect(self.screen, BORDER_COLOR, (bgX, bgY, bgW, bgH), border_radius=5)
         
         for row in range(self.numTilesY):
             for col in range(self.numTilesX):
@@ -42,4 +52,4 @@ class Board:
                 tileY = (row * self.tileSize) + y
                 
                 pygame.draw.rect(self.screen, tile, (tileX, tileY, self.tileSize, self.tileSize))
-                pygame.draw.rect(self.screen, BORDER_COLOR, (tileX, tileY, self.tileSize, self.tileSize), self.borderWidth)
+        self.renderGridLines(x, y)
