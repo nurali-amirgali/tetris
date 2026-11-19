@@ -51,10 +51,6 @@ PIECES = {
     "L": (L_PIECE, ORANGE),
 }
 
-class piece:
-    def __init__(self):
-        pass
-
 class Board:
     def __init__(self, x, y, screen, numTilesX = 10, numTilesY = 20, tileSize = 30, borderWidth = 1, outerBorderWidth = 7):
         self.x = x
@@ -71,17 +67,20 @@ class Board:
         self.tileSize = tileSize
         self.borderWidth = borderWidth
         self.outerBorderWidth = outerBorderWidth
-        self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)]
+        self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)] #y, x
         
         self.lastUpdateTime = time.perf_counter()
-        self.updateDelay = 500
+        self.updateDelay = 1000
         
-        self.isPieceActive = False
-        self.activePiece = None
-        self.nextPieces = [list(PIECES.keys())]
+        self.nextPieces = list(PIECES.keys())
         self.currentPieceIndex = 0
         
         self.piecePos = (0,0)
+        self.pieceArray = []
+        self.pieceType = None
+        self.isPieceActive = False
+        self.pieceColor = None
+        self.spawnNextPiece()
         
     def randomizePieces(self):
         random.shuffle(self.nextPieces)
@@ -94,7 +93,41 @@ class Board:
         for col in range(self.visibleTilesX + 1):
             drawX = (col * self.tileSize) + x
             pygame.draw.line(self.screen, BORDER_COLOR, (drawX, y), (drawX, y + (self.tileSize * self.visibleTilesY)), self.borderWidth)
+    
+    def combineLists(self, list1, list2):
+        newList = [[EMPTY] * self.numTilesX for _ in range(self.numTilesY)]
+        for row in range(self.numTilesY):
+                for col in range(self.numTilesX):
+                    item1 = list1[col][row]
+                    item2 = list2[col][row]
+                    if item1 == EMPTY:
+                        newList[col][row] = item2
+                    else:
+                        newList[col][row] = item1
+    
+    def renderPiece(self, x, y, tileSize, pieceList, color):
+        for row, rowList in enumerate(pieceList):
+            for col, tile in enumerate(rowList):
+                tileX = (col * tileSize) + x
+                tileY = (row * tileSize) + y
+                
+                if tile:
+                    pygame.draw.rect(self.screen, color, (tileX, tileY, tileSize, tileSize))
+    
+    def spawnNextPiece(self):
+        pieceType = self.nextPieces[self.currentPieceIndex]
+        print(pieceType)
         
+        self.currentPieceIndex += 1
+        if self.currentPieceIndex > len(self.nextPieces):
+            self.randomizePieces()
+            
+        self.pieceColor = PIECES[pieceType][1]
+        self.pieceArray = PIECES[pieceType][0]
+        width = len(self.pieceArray[0])
+        spawnX = self.visibleTilesX/2 - width/2
+        
+        self.piecePos = (spawnX, 0)
     
     def render(self):
         x = self.x - (self.visibleTilesX * self.tileSize)/2
@@ -115,15 +148,18 @@ class Board:
                 tileY = (row * self.tileSize) + y
                 
                 pygame.draw.rect(self.screen, tile, (tileX, tileY, self.tileSize, self.tileSize))
+        
+        
+        pieceX = (self.x - (self.numTilesX * self.tileSize)/2) + (self.piecePos[0] * self.tileSize)
+        pieceY = y + (self.piecePos[1] * self.tileSize)
+        self.renderPiece(pieceX, pieceY, self.tileSize, self.pieceArray, self.pieceColor)
+        
         self.renderGridLines(x, y)
     
     def update(self):
         now = time.perf_counter()
         if (now - self.lastUpdateTime) >= (self.updateDelay/1000):
             self.lastUpdateTime = now
-            if not self.activePiece:
-                self.activePiece = True
-                self.activePiece = self.nextPieces[self.currentPieceIndex]
-                self.currentPieceIndex += 1
-            print("tick")
+            self.piecePos = (self.piecePos[0], self.piecePos[1] + 1)
+            print(self.piecePos)
                         
