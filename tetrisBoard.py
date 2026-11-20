@@ -70,9 +70,10 @@ class Board:
         self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)] #y, x
         
         self.lastUpdateTime = time.perf_counter()
-        self.updateDelay = 1000
+        self.updateDelay = 100 #1000
         
         self.nextPieces = list(PIECES.keys())
+        self.randomizePieces()
         self.currentPieceIndex = 0
         
         self.piecePos = (0,0)
@@ -98,12 +99,48 @@ class Board:
         newList = [[EMPTY] * self.numTilesX for _ in range(self.numTilesY)]
         for row in range(self.numTilesY):
                 for col in range(self.numTilesX):
-                    item1 = list1[col][row]
-                    item2 = list2[col][row]
+                    item1 = list1[row][col]
+                    item2 = list2[row][col]
                     if item1 == EMPTY:
-                        newList[col][row] = item2
+                        newList[row][col] = item2
                     else:
-                        newList[col][row] = item1
+                        newList[row][col] = item1
+        return newList
+                        
+    def pieceToList(self):
+        newList = [[EMPTY] * self.numTilesX for _ in range(self.numTilesY)]
+        belowFloor = False
+        for row, rowList in enumerate(self.pieceArray):
+            for col, tile in enumerate(rowList):
+                if tile:
+                    globalY = row + self.piecePos[1] + self.hiddenTilesY
+                    globalX = col + self.piecePos[0]
+                    if globalY >= self.numTilesY:
+                        belowFloor = True
+                    try:
+                        newList[globalY][globalX] = self.pieceColor
+                    except IndexError:
+                        continue
+        return newList, belowFloor
+                        
+    def checkGrounding(self):
+        pieceList, isBelowFloor = self.pieceToList()
+        isGrounded = isBelowFloor
+        
+        for row in range(self.numTilesY):
+            for col in range(self.numTilesX):
+                existingTile = self.tiles[row][col]
+                pieceTile = pieceList[row][col]
+                if existingTile != EMPTY and pieceTile != EMPTY:
+                    isGrounded = True
+                    break
+            if isGrounded: break
+        
+        if isGrounded:
+            self.piecePos = (self.piecePos[0], self.piecePos[1]-1)
+            pieceList, isBelowFloor = self.pieceToList()
+            self.spawnNextPiece()
+            self.tiles = self.combineLists(pieceList, self.tiles)
     
     def renderPiece(self, x, y, tileSize, pieceList, color):
         for row, rowList in enumerate(pieceList):
@@ -119,15 +156,16 @@ class Board:
         print(pieceType)
         
         self.currentPieceIndex += 1
-        if self.currentPieceIndex > len(self.nextPieces):
+        if self.currentPieceIndex > len(self.nextPieces) - 1:
+            self.currentPieceIndex = 0
             self.randomizePieces()
             
         self.pieceColor = PIECES[pieceType][1]
         self.pieceArray = PIECES[pieceType][0]
         width = len(self.pieceArray[0])
-        spawnX = self.visibleTilesX/2 - width/2
+        spawnX = round(self.visibleTilesX/2 - width/2)
         
-        self.piecePos = (spawnX, 0)
+        self.piecePos = (spawnX, -self.hiddenTilesY)
     
     def render(self):
         x = self.x - (self.visibleTilesX * self.tileSize)/2
@@ -150,7 +188,7 @@ class Board:
                 pygame.draw.rect(self.screen, tile, (tileX, tileY, self.tileSize, self.tileSize))
         
         
-        pieceX = (self.x - (self.numTilesX * self.tileSize)/2) + (self.piecePos[0] * self.tileSize)
+        pieceX = x + (self.piecePos[0] * self.tileSize)
         pieceY = y + (self.piecePos[1] * self.tileSize)
         self.renderPiece(pieceX, pieceY, self.tileSize, self.pieceArray, self.pieceColor)
         
@@ -161,5 +199,6 @@ class Board:
         if (now - self.lastUpdateTime) >= (self.updateDelay/1000):
             self.lastUpdateTime = now
             self.piecePos = (self.piecePos[0], self.piecePos[1] + 1)
-            print(self.piecePos)
+            self.checkGrounding()
+            #print(self.piecePos)
                         
