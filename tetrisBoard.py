@@ -1,6 +1,7 @@
 import pygame
 import time
 import random
+from dataclasses import dataclass
 
 EMPTY = (0,0,0)
 RED = (240, 0, 0)
@@ -61,6 +62,14 @@ def rotateArray(array, direction):
         return [list(row) for row in zip(*array)][::-1]
     return array
 
+@dataclass
+class invalidTiles:
+    underList: list
+    collisionList: list
+    aboveList: list
+    sideList: list
+    allList: list
+
 class Board:
     def __init__(self, x, y, screen, numTilesX = 10, numTilesY = 20, tileSize = 30, borderWidth = 1, outerBorderWidth = 7):
         self.x = x
@@ -80,7 +89,7 @@ class Board:
         self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)] #y, x
         
         self.lastUpdateTime = time.perf_counter()
-        self.updateDelay = 700 #1000
+        self.updateDelay = 200 #1000
         
         self.nextPieces = list(PIECES.keys())
         self.randomizePieces()
@@ -93,8 +102,18 @@ class Board:
         self.pieceColor = None
         self.spawnNextPiece()
         
+        #i just took these values from the default tetr.io handling values
+        #in Milliseconds
+        self.delayedAutoShift = 167
+        self.autoRepeatRate = 33
+        
     def randomizePieces(self):
         random.shuffle(self.nextPieces)
+        
+    def getTile(self, x, y):
+        if 0 <= y < len(self.tiles) and 0 <= x < len(self.tiles[y]):
+            return self.tiles[y][x]
+        return None
         
     def rotatePiece(self, direction):
         self.pieceArray = rotateArray(self.pieceArray, direction)
@@ -107,53 +126,61 @@ class Board:
         for col in range(self.visibleTilesX + 1):
             drawX = (col * self.tileSize) + x
             pygame.draw.line(self.screen, BORDER_COLOR, (drawX, y), (drawX, y + (self.tileSize * self.visibleTilesY)), self.borderWidth)
-    
-    def combineLists(self, list1, list2):
-        newList = [[EMPTY] * self.numTilesX for _ in range(self.numTilesY)]
-        for row in range(self.numTilesY):
-                for col in range(self.numTilesX):
-                    item1 = list1[row][col]
-                    item2 = list2[row][col]
-                    if item1 == EMPTY:
-                        newList[row][col] = item2
-                    else:
-                        newList[row][col] = item1
-        return newList
                         
-    def pieceToList(self):
-        newList = [[EMPTY] * self.numTilesX for _ in range(self.numTilesY)]
-        belowFloor = False
+    
+    #returns all the tiles that are out of bounds or collide with other tiles
+    #this is like the most important function in this code
+    def getInvalidTiles(self):
+        collidingTiles = []
+        belowTiles = []
+        sideTiles = []
+        aboveTiles = []
+        allTiles = []
         for row, rowList in enumerate(self.pieceArray):
             for col, tile in enumerate(rowList):
                 if tile:
                     globalY = row + self.piecePos[1] + self.hiddenTilesY
                     globalX = col + self.piecePos[0]
-                    if globalY >= self.numTilesY:
-                        belowFloor = True
-                    try:
-                        newList[globalY][globalX] = self.pieceColor
-                    except IndexError:
-                        continue
-        return newList, belowFloor
+                    pos = (globalX, globalY)
+                    
+                    #if the tile goes out of bounds above the grid
+                    if globalY < 0:
+                        aboveTiles.append(pos)
+                    
+                    #if the tile goes out of bounds under the grid
+                    if globalY > (self.numTilesY - 1):
+                        belowTiles.append(pos)
                         
-    def checkGrounding(self):
-        pieceList, isBelowFloor = self.pieceToList()
-        isGrounded = isBelowFloor
+                    #if the tiles goes out of bounds on the left or right side
+                    if 0 > globalX or globalX > (self.numTilesX - 1):
+                        sideTiles.append(pos)
+
+                    #if the tile collides with another
+                    if self.getTile(globalX, globalY) != EMPTY and self.getTile(globalX, globalY) != None:
+                        collidingTiles.append(pos)
+                        
+        #combine all these lists into one list
+        allTiles = list(dict.fromkeys(belowTiles + collidingTiles + aboveTiles + sideTiles))
+        return invalidTiles(belowTiles, collidingTiles, aboveTiles, sideTiles, allTiles)
         
-        for row in range(self.numTilesY):
-            for col in range(self.numTilesX):
-                existingTile = self.tiles[row][col]
-                pieceTile = pieceList[row][col]
-                if existingTile != EMPTY and pieceTile != EMPTY:
-                    isGrounded = True
-                    break
-            if isGrounded: break
-        
-        if isGrounded:
+    #it will put the tiles from the piece onto the global tiles list
+    def connectPiece(self):
+        for row, rowList in enumerate(self.pieceArray):
+            for col, tile in enumerate(rowList):
+                if tile:
+                    globalY = row + self.piecePos[1] + self.hiddenTilesY
+                    globalX = col + self.piecePos[0]
+                    if self.getTile(globalX, globalY) != None:
+                        self.tiles[globalY][globalX] = self.pieceColor
+            
+    def pieceTick(self):
+        tiles = self.getInvalidTiles()
+        print(tiles.allList)
+        if tiles.underList or tiles.collisionList:
             self.piecePos = (self.piecePos[0], self.piecePos[1]-1)
-            pieceList, isBelowFloor = self.pieceToList()
+            self.connectPiece()
             self.spawnNextPiece()
-            self.tiles = self.combineLists(pieceList, self.tiles)
+                        
     
     def renderPiece(self, x, y, tileSize, pieceList, color):
         for row, rowList in enumerate(pieceList):
@@ -211,6 +238,5 @@ class Board:
         if (now - self.lastUpdateTime) >= (self.updateDelay/1000):
             self.lastUpdateTime = now
             self.piecePos = (self.piecePos[0], self.piecePos[1] + 1)
-            self.checkGrounding()
-            #print(self.piecePos)
+            self.pieceTick()
                         
