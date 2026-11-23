@@ -51,6 +51,16 @@ PIECES = {
     "L": (L_PIECE, ORANGE),
 }
 
+CLOCKWISE = 1
+ANTI_CLOCKWISE = -1
+
+def rotateArray(array, direction):
+    if direction == CLOCKWISE:
+        return [list(row) for row in zip(*array[::-1])]
+    elif direction == ANTI_CLOCKWISE:
+        return [list(row) for row in zip(*array)][::-1]
+    return array
+
 class Board:
     def __init__(self, x, y, screen, numTilesX = 10, numTilesY = 20, tileSize = 30, borderWidth = 1, outerBorderWidth = 7):
         self.x = x
@@ -70,7 +80,7 @@ class Board:
         self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)] #y, x
         
         self.lastUpdateTime = time.perf_counter()
-        self.updateDelay = 100 #1000
+        self.updateDelay = 700 #1000
         
         self.nextPieces = list(PIECES.keys())
         self.randomizePieces()
@@ -85,6 +95,9 @@ class Board:
         
     def randomizePieces(self):
         random.shuffle(self.nextPieces)
+        
+    def rotatePiece(self, direction):
+        self.pieceArray = rotateArray(self.pieceArray, direction)
     
     def renderGridLines(self, x, y):
         for row in range(self.visibleTilesY + 1):
@@ -186,7 +199,6 @@ class Board:
                 tileY = (row * self.tileSize) + y
                 
                 pygame.draw.rect(self.screen, tile, (tileX, tileY, self.tileSize, self.tileSize))
-        
         
         pieceX = x + (self.piecePos[0] * self.tileSize)
         pieceY = y + (self.piecePos[1] * self.tileSize)
