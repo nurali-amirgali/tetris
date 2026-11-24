@@ -2,58 +2,7 @@ import pygame
 import time
 import random
 from dataclasses import dataclass
-
-EMPTY = (0,0,0)
-RED = (240, 0, 0)
-GREEN = (0, 240, 0)
-CYAN = (0, 240, 240)
-YELLOW = (240, 240, 0)
-PURPLE = (160, 0, 240)
-DARK_BLUE = (0, 0, 240)
-ORANGE = (240, 160, 0)
-
-BORDER_COLOR = (128, 126, 124)
-
-I_PIECE = [[0,0,0,0],
-           [1,1,1,1],
-           [0,0,0,0],
-           [0,0,0,0]]
-
-O_PIECE = [[1,1],
-           [1,1]]
-
-T_PIECE = [[0,1,0],
-           [1,1,1],
-           [0,0,0]]
-
-S_PIECE = [[0,1,1],
-           [1,1,0],
-           [0,0,0]]
-
-Z_PIECE = [[1,1,0],
-           [0,1,1],
-           [0,0,0]]
-
-J_PIECE = [[1,0,0],
-           [1,1,1],
-           [0,0,0]]
-
-L_PIECE = [[0,0,1],
-           [1,1,1],
-           [0,0,0]]
-
-PIECES = {
-    "I": (I_PIECE, CYAN),
-    "O": (O_PIECE, YELLOW),
-    "T": (T_PIECE, PURPLE),
-    "S": (S_PIECE, GREEN),
-    "Z": (Z_PIECE, RED),
-    "J": (J_PIECE, DARK_BLUE),
-    "L": (L_PIECE, ORANGE),
-}
-
-CLOCKWISE = 1
-ANTI_CLOCKWISE = -1
+from constants import *
 
 def rotateArray(array, direction):
     if direction == CLOCKWISE:
@@ -89,7 +38,7 @@ class Board:
         self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)] #y, x
         
         self.lastUpdateTime = time.perf_counter()
-        self.updateDelay = 200 #1000
+        self.updateDelay = 1000 #1000
         
         self.nextPieces = list(PIECES.keys())
         self.randomizePieces()
@@ -106,6 +55,10 @@ class Board:
         #in Milliseconds
         self.delayedAutoShift = 167
         self.autoRepeatRate = 33
+        self.lastShiftTime = time.perf_counter()
+        self.shiftDir = 0 #right is 1 and left is -1
+        self.delayOver = False
+        self.initialPressTime = time.perf_counter()
         
     def randomizePieces(self):
         random.shuffle(self.nextPieces)
@@ -191,6 +144,50 @@ class Board:
                 if tile:
                     pygame.draw.rect(self.screen, color, (tileX, tileY, tileSize, tileSize))
     
+    #1 = right, -1 = left
+    def movePiece(self, dir):
+        self.piecePos = (self.piecePos[0] + dir, self.piecePos[1])
+        tiles = self.getInvalidTiles()
+        if tiles.sideList or tiles.collisionList:
+            self.piecePos = (self.piecePos[0] - dir, self.piecePos[1])
+           
+    def newInputStart(self, dir):
+        self.shiftDir = dir
+        self.delayOver = False
+        self.initialPressTime = time.perf_counter()
+        self.movePiece(dir)
+    
+    def handleInput(self):
+        keys = pygame.key.get_pressed()
+        
+        if not keys[pygame.K_RIGHT] and not keys[pygame.K_LEFT]:
+            self.shiftDir = 0
+        
+        timeNow = time.perf_counter()
+        if keys[pygame.K_LEFT]:
+            if self.shiftDir != -1:
+                self.newInputStart(-1)
+                
+            if self.delayOver:
+                if (timeNow - self.lastShiftTime) >= self.autoRepeatRate/1000:
+                    self.movePiece(-1)
+                    self.lastShiftTime = timeNow
+            else:
+                if (timeNow - self.initialPressTime) >= self.delayedAutoShift/1000:
+                    self.delayOver = True
+                    
+        if keys[pygame.K_RIGHT]:
+            if self.shiftDir != 1:
+                self.newInputStart(1)
+                
+            if self.delayOver:
+                if (timeNow - self.lastShiftTime) >= self.autoRepeatRate/1000:
+                    self.movePiece(1)
+                    self.lastShiftTime = timeNow
+            else:
+                if (timeNow - self.initialPressTime) >= self.delayedAutoShift/1000:
+                    self.delayOver = True
+
     def spawnNextPiece(self):
         pieceType = self.nextPieces[self.currentPieceIndex]
         print(pieceType)

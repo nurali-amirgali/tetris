@@ -1,0 +1,51 @@
+EMPTY = (0,0,0)
+RED = (240, 0, 0)
+GREEN = (0, 240, 0)
+CYAN = (0, 240, 240)
+YELLOW = (240, 240, 0)
+PURPLE = (160, 0, 240)
+DARK_BLUE = (0, 0, 240)
+ORANGE = (240, 160, 0)
+
+BORDER_COLOR = (128, 126, 124)
+
+I_PIECE = [[0,0,0,0],
+           [1,1,1,1],
+           [0,0,0,0],
+           [0,0,0,0]]
+
+O_PIECE = [[1,1],
+           [1,1]]
+
+T_PIECE = [[0,1,0],
+           [1,1,1],
+           [0,0,0]]
+
+S_PIECE = [[0,1,1],
+           [1,1,0],
+           [0,0,0]]
+
+Z_PIECE = [[1,1,0],
+           [0,1,1],
+           [0,0,0]]
+
+J_PIECE = [[1,0,0],
+           [1,1,1],
+           [0,0,0]]
+
+L_PIECE = [[0,0,1],
+           [1,1,1],
+           [0,0,0]]
+
+PIECES = {
+    "I": (I_PIECE, CYAN),
+    "O": (O_PIECE, YELLOW),
+    "T": (T_PIECE, PURPLE),
+    "S": (S_PIECE, GREEN),
+    "Z": (Z_PIECE, RED),
+    "J": (J_PIECE, DARK_BLUE),
+    "L": (L_PIECE, ORANGE),
+}
+
+CLOCKWISE = 1
+ANTI_CLOCKWISE = -1
