@@ -164,29 +164,19 @@ class Board:
             self.shiftDir = 0
         
         timeNow = time.perf_counter()
-        if keys[pygame.K_LEFT]:
-            if self.shiftDir != -1:
-                self.newInputStart(-1)
-                
-            if self.delayOver:
-                if (timeNow - self.lastShiftTime) >= self.autoRepeatRate/1000:
-                    self.movePiece(-1)
-                    self.lastShiftTime = timeNow
-            else:
-                if (timeNow - self.initialPressTime) >= self.delayedAutoShift/1000:
-                    self.delayOver = True
+        keyDirs = {1:keys[pygame.K_RIGHT], -1:keys[pygame.K_LEFT]}
+        for dir, keyList in keyDirs.items():
+            if keyList:
+                if self.shiftDir != dir:
+                    self.newInputStart(dir)
                     
-        if keys[pygame.K_RIGHT]:
-            if self.shiftDir != 1:
-                self.newInputStart(1)
-                
-            if self.delayOver:
-                if (timeNow - self.lastShiftTime) >= self.autoRepeatRate/1000:
-                    self.movePiece(1)
-                    self.lastShiftTime = timeNow
-            else:
-                if (timeNow - self.initialPressTime) >= self.delayedAutoShift/1000:
-                    self.delayOver = True
+                if self.delayOver:
+                    if (timeNow - self.lastShiftTime) >= self.autoRepeatRate/1000:
+                        self.movePiece(dir)
+                        self.lastShiftTime = timeNow
+                else:
+                    if (timeNow - self.initialPressTime) >= self.delayedAutoShift/1000:
+                        self.delayOver = True
 
     def spawnNextPiece(self):
         pieceType = self.nextPieces[self.currentPieceIndex]
