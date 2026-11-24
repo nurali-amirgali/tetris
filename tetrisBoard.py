@@ -70,6 +70,10 @@ class Board:
         
     def rotatePiece(self, direction):
         self.pieceArray = rotateArray(self.pieceArray, direction)
+        tiles = self.getInvalidTiles()
+        
+        if tiles.allList:
+            self.pieceArray = rotateArray(self.pieceArray, -direction)
     
     def renderGridLines(self, x, y):
         for row in range(self.visibleTilesY + 1):
@@ -128,7 +132,6 @@ class Board:
             
     def pieceTick(self):
         tiles = self.getInvalidTiles()
-        print(tiles.allList)
         if tiles.underList or tiles.collisionList:
             self.piecePos = (self.piecePos[0], self.piecePos[1]-1)
             self.connectPiece()
@@ -160,6 +163,7 @@ class Board:
     def handleInput(self):
         keys = pygame.key.get_pressed()
         
+        #if no keys are being pressed then we set the direction to 0
         if not keys[pygame.K_RIGHT] and not keys[pygame.K_LEFT]:
             self.shiftDir = 0
         
