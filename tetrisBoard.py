@@ -49,6 +49,7 @@ class Board:
         self.pieceType = None
         self.isPieceActive = False
         self.pieceColor = None
+        self.pieceRot = 0 #0 is the default, 1 is right, 2 is down, 3 is left
         self.spawnNextPiece()
         
         #i just took these values from the default tetr.io handling values
@@ -70,9 +71,29 @@ class Board:
         
     def rotatePiece(self, direction):
         self.pieceArray = rotateArray(self.pieceArray, direction)
-        tiles = self.getInvalidTiles()
+        newRot = (self.pieceRot + direction) % 4
+        checksList = []
         
-        if tiles.allList:
+        if self.pieceType == "I":
+            checksList = I_CW if direction == CLOCKWISE else I_CCW
+        elif self.pieceType in "JLSTZ":
+            checksList = JLSTZ_CW if direction == CLOCKWISE else JLSTZ_CCW
+        else:
+            checksList = [[(0,0)],[(0,0)],[(0,0)],[(0,0)]]
+        
+        originalPos = self.piecePos
+        valid = False
+        for check in checksList[self.pieceRot]:
+            self.piecePos = (originalPos[0] + check[0], originalPos[1] - check[1])
+            tiles = self.getInvalidTiles()
+
+            if not tiles.allList:
+                valid = True
+                self.pieceRot = newRot
+                break
+                
+        if not valid:
+            self.piecePos = originalPos
             self.pieceArray = rotateArray(self.pieceArray, -direction)
     
     def renderGridLines(self, x, y):
@@ -184,7 +205,6 @@ class Board:
 
     def spawnNextPiece(self):
         pieceType = self.nextPieces[self.currentPieceIndex]
-        print(pieceType)
         
         self.currentPieceIndex += 1
         if self.currentPieceIndex > len(self.nextPieces) - 1:
@@ -197,6 +217,8 @@ class Board:
         spawnX = round(self.visibleTilesX/2 - width/2)
         
         self.piecePos = (spawnX, -self.hiddenTilesY)
+        self.pieceType = pieceType
+        self.pieceRot = 0
     
     def render(self):
         x = self.x - (self.visibleTilesX * self.tileSize)/2
