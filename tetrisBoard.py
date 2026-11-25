@@ -38,7 +38,7 @@ class Board:
         self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)] #y, x
         
         self.lastUpdateTime = time.perf_counter()
-        self.updateDelay = 1000 #1000
+        self.updateDelay = 700 #1000
         
         self.nextPieces = list(PIECES.keys())
         self.randomizePieces()
@@ -152,12 +152,18 @@ class Board:
                         self.tiles[globalY][globalX] = self.pieceColor
             
     def pieceTick(self):
-        tiles = self.getInvalidTiles()
-        if tiles.underList or tiles.collisionList:
-            self.piecePos = (self.piecePos[0], self.piecePos[1]-1)
-            self.connectPiece()
-            self.spawnNextPiece()
-                        
+        grounded = False
+        for i in range(2):
+            self.piecePos = (self.piecePos[0], self.piecePos[1] + 1)
+            tiles = self.getInvalidTiles()
+            if tiles.underList or tiles.collisionList:
+                self.piecePos = (self.piecePos[0], self.piecePos[1] - 1)
+                self.connectPiece()
+                self.spawnNextPiece()
+                grounded = True
+                break
+        if not grounded:
+            self.piecePos = (self.piecePos[0], self.piecePos[1] - 1)
     
     def renderPiece(self, x, y, tileSize, pieceList, color):
         for row, rowList in enumerate(pieceList):
@@ -166,7 +172,8 @@ class Board:
                 tileY = (row * tileSize) + y
                 
                 if tile:
-                    pygame.draw.rect(self.screen, color, (tileX, tileY, tileSize, tileSize))
+                    if tileY > (self.y - (self.tileSize * self.visibleTilesY)/2 - self.tileSize):
+                        pygame.draw.rect(self.screen, color, (tileX, tileY, tileSize, tileSize))
     
     #1 = right, -1 = left
     def movePiece(self, dir):
@@ -216,7 +223,7 @@ class Board:
         width = len(self.pieceArray[0])
         spawnX = round(self.visibleTilesX/2 - width/2)
         
-        self.piecePos = (spawnX, -self.hiddenTilesY)
+        self.piecePos = (spawnX, -2)
         self.pieceType = pieceType
         self.pieceRot = 0
     
@@ -250,6 +257,5 @@ class Board:
         now = time.perf_counter()
         if (now - self.lastUpdateTime) >= (self.updateDelay/1000):
             self.lastUpdateTime = now
-            self.piecePos = (self.piecePos[0], self.piecePos[1] + 1)
             self.pieceTick()
                         
