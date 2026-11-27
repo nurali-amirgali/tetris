@@ -7,7 +7,7 @@ HEIGHT = 700
 FPS = 60
 
 CLOCKWISE = 1
-ANTI_CLOCKWISE = -1
+COUNTER_CLOCKWISE = -1
 
 BG_COLOR = (30,30,30)
 
@@ -30,6 +30,10 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 board.rotatePiece(CLOCKWISE)
+            if event.key == pygame.K_x:
+                board.rotatePiece(COUNTER_CLOCKWISE)
+            if event.key == pygame.K_SPACE:
+                board.hardDrop()
                     
     screen.fill(BG_COLOR)
     

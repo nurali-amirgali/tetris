@@ -3,11 +3,13 @@ import time
 import random
 from dataclasses import dataclass
 from constants import *
+import math
+from copy import deepcopy
 
 def rotateArray(array, direction):
     if direction == CLOCKWISE:
         return [list(row) for row in zip(*array[::-1])]
-    elif direction == ANTI_CLOCKWISE:
+    elif direction == COUNTER_CLOCKWISE:
         return [list(row) for row in zip(*array)][::-1]
     return array
 
@@ -38,7 +40,7 @@ class Board:
         self.tiles = [[EMPTY] * numTilesX for _ in range(numTilesY + self.hiddenTilesY)] #y, x
         
         self.lastUpdateTime = time.perf_counter()
-        self.updateDelay = 700 #1000
+        self.updateDelay = 300 #1000
         
         self.nextPieces = list(PIECES.keys())
         self.randomizePieces()
@@ -140,6 +142,34 @@ class Board:
         #combine all these lists into one list
         allTiles = list(dict.fromkeys(belowTiles + collidingTiles + aboveTiles + sideTiles))
         return invalidTiles(belowTiles, collidingTiles, aboveTiles, sideTiles, allTiles)
+    
+    def getFilledRows(self):
+        filledRows = list(range(self.numTilesY))
+        
+        for row in range(self.numTilesY):
+            for col in range(self.visibleTilesX):
+                tile = self.tiles[row][col]
+                if tile == EMPTY:
+                    filledRows.remove(row)
+                    break
+        return filledRows
+    
+    def deleteFilledRows(self, rowsList):
+        if not rowsList:
+            return 
+        
+        remainingRows = [
+            self.tiles[row]
+            for row in range(self.numTilesY)
+            if row not in rowsList
+        ]
+
+        emptyRows = [
+            [EMPTY] * self.numTilesX
+            for _ in range(len(rowsList))
+        ]
+
+        self.tiles = emptyRows + remainingRows
         
     #it will put the tiles from the piece onto the global tiles list
     def connectPiece(self):
@@ -150,6 +180,16 @@ class Board:
                     globalX = col + self.piecePos[0]
                     if self.getTile(globalX, globalY) != None:
                         self.tiles[globalY][globalX] = self.pieceColor
+    
+    def hardDrop(self):
+        while True:
+            self.piecePos = (self.piecePos[0], self.piecePos[1] + 1)
+            tiles = self.getInvalidTiles()
+            if tiles.underList or tiles.collisionList:
+                self.piecePos = (self.piecePos[0], self.piecePos[1] - 1)
+                self.connectPiece()
+                self.spawnNextPiece()
+                break
             
     def pieceTick(self):
         grounded = False
@@ -221,7 +261,7 @@ class Board:
         self.pieceColor = PIECES[pieceType][1]
         self.pieceArray = PIECES[pieceType][0]
         width = len(self.pieceArray[0])
-        spawnX = round(self.visibleTilesX/2 - width/2)
+        spawnX = math.floor(self.visibleTilesX/2 - width/2)
         
         self.piecePos = (spawnX, -2)
         self.pieceType = pieceType
@@ -258,4 +298,7 @@ class Board:
         if (now - self.lastUpdateTime) >= (self.updateDelay/1000):
             self.lastUpdateTime = now
             self.pieceTick()
-                        
+            
+            filledRows = self.getFilledRows()
+            print(filledRows)
+            self.deleteFilledRows(filledRows)

@@ -48,7 +48,7 @@ PIECES = {
 }
 
 CLOCKWISE = 1
-ANTI_CLOCKWISE = -1
+COUNTER_CLOCKWISE = -1
 
 JLSTZ_CW = [
     [(0, 0), (-1, 0), (-1, 1), (0, -2), (-1, -2)],
