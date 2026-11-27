@@ -41,6 +41,9 @@ while running:
     board.update()
     board.render()
     
+    if board.isGameOver:
+        running = False
+    
     pygame.display.flip()
 
 pygame.quit()

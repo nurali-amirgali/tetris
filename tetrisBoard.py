@@ -25,6 +25,7 @@ class Board:
     def __init__(self, x, y, screen, numTilesX = 10, numTilesY = 20, tileSize = 30, borderWidth = 1, outerBorderWidth = 7):
         self.x = x
         self.y = y
+        self.isGameOver = False
         
         self.hiddenTilesY = 4
         self.numTilesX = numTilesX
@@ -124,7 +125,7 @@ class Board:
                     pos = (globalX, globalY)
                     
                     #if the tile goes out of bounds above the grid
-                    if globalY < 0:
+                    if globalY < (self.hiddenTilesY + 1):
                         aboveTiles.append(pos)
                     
                     #if the tile goes out of bounds under the grid
@@ -198,6 +199,11 @@ class Board:
             tiles = self.getInvalidTiles()
             if tiles.underList or tiles.collisionList:
                 self.piecePos = (self.piecePos[0], self.piecePos[1] - 1)
+                
+                #check for lock out 
+                if len(tiles.aboveList) == 4:
+                    self.isGameOver = True
+                    
                 self.connectPiece()
                 self.spawnNextPiece()
                 grounded = True
@@ -266,6 +272,11 @@ class Board:
         self.piecePos = (spawnX, -2)
         self.pieceType = pieceType
         self.pieceRot = 0
+        
+        #check for block out
+        tiles = self.getInvalidTiles()
+        if tiles.collisionList:
+            self.isGameOver = True
     
     def render(self):
         x = self.x - (self.visibleTilesX * self.tileSize)/2
@@ -300,5 +311,4 @@ class Board:
             self.pieceTick()
             
             filledRows = self.getFilledRows()
-            print(filledRows)
             self.deleteFilledRows(filledRows)
